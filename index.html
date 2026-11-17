@@ -1,0 +1,1097 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050506">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://huggingface.co" crossorigin>
+<title>JACK — Vocal Remover</title>
+<style>
+:root{color-scheme:dark;--bg:#050506;--surface:#101014;--surface2:#15151b;--surface3:#1d1d25;--line:#292932;--text:#f3f2f8;--muted:#92919e;--accent:#a891ff;--accent2:#7c6bf0;--cyan:#7ddce2;--good:#7bd99b;--bad:#ff8795;--shadow:0 24px 80px #0008;--track-v:#b8a5ff;--track-m:#7ddce2}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:hidden;transition:background .25s,color .25s}button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.5;cursor:wait}button:focus-visible,input:focus-visible,select:focus-visible,.drop:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.hidden{display:none!important}
+.app{width:min(920px,calc(100% - 32px));margin:0 auto;padding:0 0 70px;min-height:100vh}
+.brand-hero{position:absolute;z-index:2;top:50%;left:50%;width:100%;text-align:center;transform:translate(-50%,-50%);transition:top .82s cubic-bezier(.2,.75,.25,1),transform .82s cubic-bezier(.2,.75,.25,1)}
+.brand-lockup{display:flex;justify-content:center;align-items:baseline;white-space:nowrap;width:max-content;max-width:none;margin:0 auto;overflow:visible;--logo-size:clamp(24px,5.2vw,72px);--title-shift:0px;transform:translateX(calc(var(--title-shift) / 2));transition:transform .78s cubic-bezier(.16,1,.3,1)}
+.brand-jack,.brand-title{font-family:inherit;font-size:var(--logo-size);font-weight:800;letter-spacing:.075em;line-height:1;color:#f7f6fc}
+.brand-jack{position:relative;z-index:2;text-shadow:0 0 42px #a891ff30;opacity:0;transform:translateX(0);animation:jack-in .7s cubic-bezier(.2,.8,.2,1) .1s forwards;transition:font-size .7s cubic-bezier(.2,.75,.25,1),letter-spacing .7s,transform .7s cubic-bezier(.2,.75,.25,1),text-shadow .4s}
+.brand-title{display:block;flex:0 0 auto;width:max-content;max-width:none;overflow:visible;white-space:nowrap;margin-left:0;opacity:0;transform:translateX(-26px);filter:blur(4px);clip-path:inset(0 100% 0 0);transform-origin:left center;color:#f7f6fc;transition:margin-left .65s cubic-bezier(.16,1,.3,1),opacity .42s .08s,transform .68s cubic-bezier(.16,1,.3,1),filter .48s .05s,clip-path .72s cubic-bezier(.16,1,.3,1),font-size .6s .42s,color .6s .42s}
+.logo-reveal .brand-lockup{transform:translateX(0)}
+.logo-reveal .brand-jack{transform:translateX(-10px)}
+.logo-reveal .brand-title{margin-left:13px;opacity:1;transform:translateX(0);filter:blur(0);clip-path:inset(0 0 0 0)}
+.entered .brand-hero{top:27px;transform:translate(-50%,0)}
+.entered .brand-jack,.entered .brand-title{font-size:clamp(25px,3.8vw,34px);letter-spacing:.065em;text-shadow:none}
+.entered .brand-title{color:#b9a8ff;margin-left:10px}
+@keyframes jack-in{0%{opacity:0;filter:blur(7px)}100%{opacity:1;filter:blur(0)}}
+.workspace{width:min(760px,100%);margin:0 auto;padding-top:225px;opacity:0;transform:translateY(20px);transition:opacity .75s .5s,transform .75s .5s}.entered .workspace{opacity:1;transform:none}.panel{background:var(--surface);border:1px solid var(--line);border-radius:19px;padding:22px;box-shadow:var(--shadow)}.panel+.panel{margin-top:15px}.step-line{display:flex;align-items:center;gap:10px;margin-bottom:14px}.step-no{width:25px;height:25px;display:grid;place-items:center;border-radius:8px;background:#a891ff1a;color:var(--accent);font-size:11px;font-weight:800}.step-title{font-size:14px;font-weight:750;letter-spacing:-.2px}.step-caption{font-size:11px;color:var(--muted);margin-left:auto}
+.drop{min-height:196px;border:1.5px dashed #55515f;border-radius:14px;background:linear-gradient(145deg,#a891ff08,transparent 65%),var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:23px;transition:border-color .2s,background .2s,transform .2s}.drop.drag{border-color:var(--accent);background:#a891ff12;transform:scale(.995)}.upload-symbol{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:#a891ff16;color:var(--accent);font-size:25px;margin-bottom:13px}.drop h1{font-size:17px;margin:0 0 7px;font-weight:650}.drop p{margin:0 0 16px;color:var(--muted);font-size:11px}.formats{margin-top:12px;font-size:10px;color:var(--muted)}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 15px;border-radius:10px;border:1px solid var(--line);background:var(--surface3);color:var(--text);font-size:12px;font-weight:700;transition:transform .15s,border-color .15s,background .15s}.btn:hover{border-color:var(--accent);transform:translateY(-1px)}.btn:active{transform:translateY(0)}.btn-primary{background:linear-gradient(110deg,var(--accent2),#8a77f2);border-color:transparent;color:white}.btn-primary:hover{background:linear-gradient(110deg,#806ce9,#9d8bff);border-color:transparent}.btn:disabled{transform:none}.selected-file{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px;padding:12px 13px;border:1px solid var(--line);border-radius:11px;background:var(--surface2)}.selected-name{min-width:0;overflow-wrap:anywhere;font-size:12px;font-weight:600}.selected-actions{display:flex;gap:8px;flex-shrink:0}.selected-actions .btn{padding:8px 11px}
+.choir-option{display:flex;align-items:center;gap:9px;margin:12px 0 0 2px;color:var(--muted);font-size:11px;cursor:pointer}.choir-option input{accent-color:var(--accent);width:15px;height:15px}
+.model-panel{padding:18px 21px}.model-layout{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}.model-label{display:block;font-size:11px;font-weight:750;margin-bottom:7px}.model-select{width:100%;padding:10px 11px;border:1px solid var(--line);background:var(--surface2);border-radius:10px;color:var(--text);font-size:12px}.model-note{font-size:10px;color:var(--muted);margin-top:7px;min-height:14px}.model-state{display:flex;align-items:center;gap:9px;margin-top:13px;font-size:11px;color:var(--muted)}.state-dot{width:7px;height:7px;border-radius:50%;background:#777;flex:0 0 auto}.model-state.ready{color:var(--good)}.model-state.ready .state-dot{background:var(--good);box-shadow:0 0 10px color-mix(in srgb,var(--good) 50%,transparent)}.model-state.error{color:var(--bad)}.model-state.error .state-dot{background:var(--bad)}.bar{height:5px;background:var(--surface3);border-radius:20px;overflow:hidden;margin-top:8px}.bar-fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent2),var(--cyan));border-radius:20px;transition:width .2s}.bar-fill.indeterminate{width:28%;animation:bar-move 1.2s ease-in-out infinite alternate}@keyframes bar-move{from{transform:translateX(0)}to{transform:translateX(260%)}}
+.processing{margin-top:14px}.task-list{display:grid;gap:8px}.task{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px 10px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);transition:background .2s,border-color .2s}.task.done{background:color-mix(in srgb,var(--good) 8%,var(--surface));border-color:color-mix(in srgb,var(--good) 38%,var(--line))}.task.error{background:color-mix(in srgb,var(--bad) 8%,var(--surface));border-color:color-mix(in srgb,var(--bad) 40%,var(--line))}.task-name{font-size:11px;font-weight:700}.task-pct{font-size:11px;color:var(--accent);font-variant-numeric:tabular-nums}.task.done .task-pct{color:var(--good)}.task.error .task-pct{color:var(--bad)}.task-detail{grid-column:1/-1;color:var(--muted);font-size:10px}.task-bar{grid-column:1/-1;height:5px;border-radius:10px;background:var(--surface3);overflow:hidden}.task-bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent2),#7cbdde);transition:width .2s}.task.done .task-bar span{background:var(--good)}.task.error .task-bar span{background:var(--bad)}.task-bar span.indeterminate{width:30%;animation:bar-move 1.1s ease-in-out infinite alternate}.error-text{font-size:11px;color:var(--bad);margin-top:10px;white-space:pre-wrap;overflow-wrap:anywhere}
+.mixer{margin-top:15px}.mixer-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.mixer-head h2{margin:0;font-size:16px}.mixer-file{font-size:11px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}.wave{height:75px;border:1px solid var(--line);border-radius:10px;overflow:hidden;position:relative;background:var(--surface2);margin-bottom:13px}.wave canvas{width:100%;height:100%;display:block}.playhead{position:absolute;top:0;bottom:0;left:0;width:2px;background:#fff;box-shadow:0 0 8px #fff9;pointer-events:none}.transport{display:flex;align-items:center;gap:9px;margin-bottom:18px}.round{width:37px;height:37px;border-radius:50%;padding:0;flex:0 0 auto}.round.primary{width:43px;height:43px}.time{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}.seek{flex:1;min-width:12px;accent-color:var(--accent)}.tracks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.track{padding:16px;border:1px solid var(--line);border-radius:13px;background:var(--surface2);min-width:0}.track.vocal{--tone:var(--track-v)}.track.choir{--tone:#efbe78}.track.music{--tone:var(--track-m)}.track-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px}.track-meta{display:flex;align-items:center;gap:10px}.track-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:var(--surface3);color:var(--tone);font-size:18px}.track h3{margin:0;font-size:13px}.track-sub{font-size:10px;color:var(--muted);margin-top:2px}.track-badge{font-size:9px;font-weight:800;letter-spacing:.6px;color:var(--tone);background:var(--surface3);padding:5px 7px;border-radius:6px}.volume-row{display:flex;align-items:center;gap:10px;margin:13px 0 17px}.volume-title{font-size:10px;color:var(--muted)}.volume{flex:1;min-width:10px;accent-color:var(--tone)}.volume-value{width:38px;text-align:right;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}.track-actions{display:flex;gap:7px;margin-bottom:10px}.toggle{flex:1;border:1px solid var(--line);border-radius:8px;background:var(--surface3);color:var(--muted);font-size:11px;font-weight:700;padding:8px}.toggle.active{color:var(--tone);border-color:var(--tone);background:color-mix(in srgb,var(--tone) 10%,var(--surface2))}.track-download{display:flex;gap:8px}.track-download .btn{flex:1;padding:9px 6px;font-size:10px}.export-bar{height:5px;background:var(--surface3);border-radius:20px;overflow:hidden;margin-top:15px}.export-bar span{display:block;height:100%;width:0;background:var(--accent2);transition:width .2s}.export-state{font-size:10px;color:var(--muted);margin-top:7px;min-height:15px}.export-state.error{color:var(--bad)}.mix-export{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.mix-export label{font-size:11px;color:var(--muted)}.format-pick{display:flex;align-items:center;gap:10px}.format-select{min-width:110px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface2);color:var(--text);font-size:11px}.footer{color:var(--muted);text-align:center;font-size:10px;margin:30px 0 0;opacity:.65}
+.ad-slot{width:min(760px,calc(100% - 32px));margin:24px auto 0;text-align:center}.ad-slot:empty{display:none}.ad-slot:not(:empty){min-height:90px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}.brand-footer{color:var(--muted);text-align:center;font-size:10px;line-height:1.7;margin:22px auto 0;padding:0 16px 28px;opacity:0;transform:translateY(8px);transition:opacity .55s .15s,transform .55s .15s}.entered .brand-footer{opacity:.72;transform:translateY(0)}.brand-footer strong{color:#c8c5d3;font-weight:650}
+@media(max-width:650px){.app{width:calc(100% - 20px)}.brand-hero{padding:0 12px}.brand-lockup{--logo-size:clamp(22px,5.2vw,35px)}.logo-reveal .brand-title{margin-left:8px;letter-spacing:.035em}.entered .brand-hero{top:24px}.entered .brand-jack,.entered .brand-title{font-size:clamp(19px,4.8vw,28px);letter-spacing:.035em}.workspace{padding-top:190px}.panel{padding:15px}.model-layout{grid-template-columns:1fr}.model-layout .btn{width:100%}.tracks{grid-template-columns:1fr}.selected-file{align-items:stretch;flex-direction:column}.selected-actions .btn{flex:1}.transport{gap:6px}.time{font-size:10px}.mixer-head{align-items:flex-start}.mix-export{align-items:flex-start;flex-direction:column}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+</style>
+<script>if(typeof global==='undefined')window.global=window;</script>
+<script type="importmap">{"imports":{"web-audio-separation":"https://cdn.jsdelivr.net/npm/web-audio-separation@0.3.1/dist/index.js","onnxruntime-web":"https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.bundle.min.mjs"}}</script>
+</head>
+<body data-theme="dark">
+<header class="brand-hero"><div class="brand-lockup"><div class="brand-jack">JACK</div><div class="brand-title">Vocal Remover</div></div></header>
+<main class="workspace">
+  <section class="panel" id="uploadPanel">
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="Nahrát skladbu">
+      <div class="upload-symbol">↑</div><h1>Nahrát skladbu</h1>
+      <button class="btn btn-primary" id="choose" type="button">Vybrat soubor</button>
+      <input id="file" type="file" accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg,.aac,.opus,.webm" hidden>
+    </div>
+    <div class="selected-file hidden" id="selected"><div class="selected-name" id="selectedName"></div><div class="selected-actions"><button class="btn btn-primary" id="process" type="button">Oddělit zpěv</button><button class="btn" id="changeFile" type="button">Změnit</button></div></div>
+    <label class="choir-option hidden" id="choirOption"><input id="separateChoir" type="checkbox"> <span>Oddělit sbory zvlášť (pomalejší)</span></label>
+  </section>
+  <section class="panel model-panel" id="modelPanel">
+    <div class="model-layout"><div class="model-label">AI</div><button class="btn" id="preload" type="button">Stáhnout AI</button></div>
+    <div class="model-state" id="modelState"><span class="state-dot"></span><span id="modelMessage">AI model není stažený.</span></div><div class="bar"><div class="bar-fill" id="modelBar"></div></div>
+  </section>
+  <section class="panel processing hidden" id="processingPanel"><div class="step-line"><span class="step-title">Zpracování</span><span class="step-caption" id="processingOverall"></span></div><div class="task-list" id="taskList"></div><div class="error-text hidden" id="errorText"></div></section>
+  <section class="panel mixer hidden" id="mixer">
+    <div class="mixer-head"><div><h2>Mixáž</h2><div class="mixer-file" id="fileInfo"></div></div><button class="btn" id="newSong" type="button">+ Nová skladba</button></div>
+    <div class="wave"><canvas id="wave"></canvas><div class="playhead" id="playhead"></div></div>
+    <div class="transport"><button class="btn btn-primary round primary" id="play" type="button" aria-label="Přehrát">▶</button><button class="btn round" id="stop" type="button" aria-label="Zastavit">■</button><span class="time" id="currentTime">00:00</span><input class="seek" id="seek" type="range" min="0" max="1000" value="0" aria-label="Pozice přehrávání"><span class="time" id="duration">00:00</span></div>
+    <div class="tracks">
+      <article class="track vocal"><div class="track-head"><div class="track-meta"><div class="track-icon">♫</div><div><h3>Zpěv</h3><div class="track-sub">Vocals</div></div></div><span class="track-badge">ZPĚV</span></div><div class="volume-row"><span class="volume-title">Hlasitost</span><input class="volume" id="vocalVolume" type="range" min="0" max="100" value="100"><span class="volume-value" id="vocalValue">100 %</span></div><div class="track-actions"><button class="toggle" id="vocalMute" type="button" aria-pressed="false">Ztlumit</button><button class="toggle" id="vocalSolo" type="button" aria-pressed="false">Solo</button></div><div class="track-download"><button class="btn" id="downloadVocals" type="button">Stáhnout zpěv</button></div></article>
+      <article class="track choir hidden" id="choirCard"><div class="track-head"><div class="track-meta"><div class="track-icon">♪</div><div><h3>Sbory</h3><div class="track-sub">Doprovodné vokály</div></div></div><span class="track-badge">SBORY</span></div><div class="volume-row"><span class="volume-title">Hlasitost</span><input class="volume" id="choirVolume" type="range" min="0" max="100" value="100"><span class="volume-value" id="choirValue">100 %</span></div><div class="track-actions"><button class="toggle" id="choirMute" type="button" aria-pressed="false">Ztlumit</button><button class="toggle" id="choirSolo" type="button" aria-pressed="false">Solo</button></div><div class="track-download"><button class="btn" id="downloadChoir" type="button">Stáhnout sbory</button></div></article>
+      <article class="track music"><div class="track-head"><div class="track-meta"><div class="track-icon">♫</div><div><h3>Hudba</h3><div class="track-sub">Instrumental</div></div></div><span class="track-badge">HUDBA</span></div><div class="volume-row"><span class="volume-title">Hlasitost</span><input class="volume" id="musicVolume" type="range" min="0" max="100" value="100"><span class="volume-value" id="musicValue">100 %</span></div><div class="track-actions"><button class="toggle" id="musicMute" type="button" aria-pressed="false">Ztlumit</button><button class="toggle" id="musicSolo" type="button" aria-pressed="false">Solo</button></div><div class="track-download"><button class="btn" id="downloadMusic" type="button">Stáhnout hudbu</button></div></article>
+    </div>
+    <div class="mix-export"><div class="format-pick"><label for="exportFormat">Formát exportu</label><select id="exportFormat" class="format-select"><option value="mp3" selected>MP3 · 192 kb/s</option><option value="wav">WAV</option></select></div><button class="btn btn-primary" id="downloadMix" type="button">Stáhnout aktuální mix</button></div>
+    <div class="export-bar"><span id="exportBar"></span></div><div class="export-state" id="exportState" aria-live="polite"></div>
+  </section>
+</main>
+<!-- JACK_AD_SLOT_START: reklamní kód vložíme sem po výběru reklamní platformy. -->
+<div class="ad-slot" id="jack-ad-slot" aria-label="Reklamní prostor"></div>
+<!-- JACK_AD_SLOT_END -->
+<footer class="brand-footer">
+  <strong>© 2026 JACK</strong> · Vlastní rozhraní a původní části projektu. Všechna práva vyhrazena.
+  <br><span>Externí knihovny a AI modely zůstávají pod licencemi svých autorů.</span>
+</footer>
+<script type="module">
+const $ = (id) => document.getElementById(id);
+
+const MODEL_KEY = 'UVR-MDX-NET-Voc_FT';
+const MODEL_URLS = [
+  'https://huggingface.co/niobures/uvr-resources/resolve/main/models/MDXNet/UVR-MDX-NET-Voc_FT.onnx',
+  'https://huggingface.co/Anjok/model-repo/resolve/main/UVR-MDX-NET-Voc_FT.onnx',
+  'https://huggingface.co/nomadkaraoke/public_uvr_models/resolve/main/UVR-MDX-NET-Voc_FT.onnx'
+];
+const MODEL_SIZE = 66762490;
+const MODEL_CACHE = 'web-demix2-models';
+const MODEL = { [MODEL_KEY]: { size: MODEL_SIZE, primary: 'vocals', label: 'UVR-MDX-NET-Voc_FT' } };
+const CHOIR_MODEL_KEY = 'UVR_MDXNET_KARA_2';
+const CHOIR_MODEL_URL = 'https://huggingface.co/AI4future/RVC/resolve/main/UVR_MDXNET_KARA_2.onnx';
+const CHOIR_MODEL_ESTIMATE = 30 * 1024 * 1024;
+
+const state = {
+  ctx: null, job: 0, busy: false, preloading: false, separator: null, modelUrl: null, modelBlobUrl: null, modelCached: false,
+  pendingFile: null, filename: 'audio', vocals: null, choir: null, music: null,
+  gains: {}, sources: [], playing: false, offset: 0, startedAt: 0,
+  raf: 0, volume: { vocals: 1, choir: 1, music: 1 },
+  mute: { vocals: false, choir: false, music: false }, solo: { vocals: false, choir: false, music: false },
+  exporting: false
+};
+
+const ui = {
+  format: $('exportFormat'),
+  drop: $('drop'), file: $('file'), choose: $('choose'), selected: $('selected'), selectedName: $('selectedName'),
+  process: $('process'), changeFile: $('changeFile'), separateChoir: $('separateChoir'), choirOption: $('choirOption'), preload: $('preload'), modelState: $('modelState'), modelMessage: $('modelMessage'), modelBar: $('modelBar'),
+  processing: $('processingPanel'), tasks: $('taskList'), error: $('errorText'), processingOverall: $('processingOverall'),
+  mixer: $('mixer'), fileInfo: $('fileInfo'), wave: $('wave'), playhead: $('playhead'),
+  play: $('play'), stop: $('stop'), currentTime: $('currentTime'), duration: $('duration'), seek: $('seek'),
+  newSong: $('newSong'), vocalVolume: $('vocalVolume'), choirVolume: $('choirVolume'), musicVolume: $('musicVolume'),
+  vocalValue: $('vocalValue'), choirValue: $('choirValue'), musicValue: $('musicValue'), vocalMute: $('vocalMute'), choirMute: $('choirMute'),
+  musicMute: $('musicMute'), vocalSolo: $('vocalSolo'), choirSolo: $('choirSolo'), musicSolo: $('musicSolo'),
+  choirCard: $('choirCard'), downloadVocals: $('downloadVocals'), downloadChoir: $('downloadChoir'), downloadMusic: $('downloadMusic'), downloadMix: $('downloadMix'),
+  exportBar: $('exportBar'), exportState: $('exportState')
+};
+
+let separationModulePromise = null;
+let mp3EncoderPromise = null;
+
+async function getExecutionProviderSets() {
+  // Detect WebGPU quickly. Some browsers expose navigator.gpu even when the
+  // adapter is unavailable; do not let adapter detection stall separation.
+  // One provider list/session is returned to avoid re-initializing WASM.
+  if (typeof navigator !== 'undefined' && navigator.gpu?.requestAdapter) {
+    try {
+      let adapterTimer;
+      const adapter = await Promise.race([
+        navigator.gpu.requestAdapter({ powerPreference: 'high-performance' }),
+        new Promise(resolve => { adapterTimer = setTimeout(() => resolve(null), 1800); })
+      ]);
+      clearTimeout(adapterTimer);
+      if (adapter) return [['webgpu', 'wasm']];
+    } catch (error) {
+      console.info('WebGPU není dostupné, přecházím na WASM:', error);
+    }
+  }
+  return [['wasm']];
+}
+function audioContext() {
+  if (!state.ctx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) throw new Error('Tento prohlížeč nepodporuje Web Audio API.');
+    state.ctx = new AudioContextClass();
+  }
+  return state.ctx;
+}
+function formatTime(seconds) {
+  const total = Math.max(0, Math.floor(Number.isFinite(seconds) ? seconds : 0));
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+function safeFilename(name) {
+  return (name || 'audio').replace(/\.[^.]+$/, '').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 80) || 'audio';
+}
+function setModelStatus(message, percent = null, kind = '') {
+  ui.modelMessage.textContent = message;
+  ui.modelState.classList.toggle('ready', kind === 'ready');
+  ui.modelState.classList.toggle('error', kind === 'error');
+  ui.modelBar.classList.toggle('indeterminate', percent === null);
+  ui.modelBar.style.width = percent === null ? '28%' : `${Math.max(0, Math.min(100, percent))}%`;
+}
+function createTask(id, name) {
+  const row = document.createElement('div');
+  row.className = 'task';
+  row.id = `task-${id}`;
+  row.innerHTML = '<div class="task-name"></div><div class="task-pct">Čeká…</div><div class="task-detail"></div><div class="task-bar"><span></span></div>';
+  row.querySelector('.task-name').textContent = name;
+  ui.tasks.appendChild(row);
+}
+function updateTask(id, percent, detail, status = 'running') {
+  const row = $(`task-${id}`);
+  if (!row) return;
+  row.classList.toggle('done', status === 'done');
+  row.classList.toggle('error', status === 'error');
+  const pct = row.querySelector('.task-pct');
+  const text = row.querySelector('.task-detail');
+  const fill = row.querySelector('.task-bar span');
+  pct.textContent = status === 'done' ? '✓ Hotovo' : status === 'error' ? 'Chyba' : percent === null ? 'Probíhá…' : `${Math.round(percent)} %`;
+  text.textContent = detail || '';
+  fill.classList.toggle('indeterminate', status === 'running' && percent === null);
+  fill.style.width = status === 'done' ? '100%' : percent === null ? '28%' : `${Math.max(0, Math.min(100, percent))}%`;
+}
+function showError(message) {
+  ui.error.textContent = message;
+  ui.error.classList.remove('hidden');
+}
+function clearError() {
+  ui.error.textContent = '';
+  ui.error.classList.add('hidden');
+}
+function clearPlayback() {
+  for (const source of state.sources) {
+    try { source.onended = null; source.stop(); } catch { /* source may already have stopped */ }
+    try { source.disconnect(); } catch { /* already disconnected */ }
+  }
+  state.sources = [];
+  state.playing = false;
+  if (state.raf) cancelAnimationFrame(state.raf);
+  state.raf = 0;
+  ui.play.textContent = '▶';
+  ui.play.setAttribute('aria-label', 'Přehrát');
+}
+function clearAudio() {
+  clearPlayback();
+  for (const gain of Object.values(state.gains)) {
+    try { gain.disconnect(); } catch { /* already disconnected */ }
+  }
+  state.gains = {};
+  state.vocals = null;
+  state.choir = null;
+  state.music = null;
+  state.offset = 0;
+  ui.exportState.textContent = '';
+  ui.exportBar.style.width = '0%';
+}
+// Each track gets its own GainNode connected directly to the device output.
+// There is deliberately no shared compressor or shared volume node in the track path.
+function createIndependentGains() {
+  const ctx = audioContext();
+  state.gains = {
+    vocals: ctx.createGain(),
+    choir: ctx.createGain(),
+    music: ctx.createGain()
+  };
+  for (const gain of Object.values(state.gains)) gain.connect(ctx.destination);
+  updateTrackControls();
+}
+function updateTrackControls() {
+  const keys = ['vocals', 'choir', 'music'];
+  const anySolo = keys.some(key => state.solo[key] && !state.mute[key]);
+  for (const key of keys) {
+    const audible = !state.mute[key] && (!anySolo || state.solo[key]);
+    const gain = state.gains[key];
+    if (gain && state.ctx) {
+      const now = state.ctx.currentTime;
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setTargetAtTime(audible ? state.volume[key] : 0, now, 0.012);
+    }
+    const muteButton = ui[`${key === 'vocals' ? 'vocal' : key}Mute`];
+    const soloButton = ui[`${key === 'vocals' ? 'vocal' : key}Solo`];
+    if (muteButton) {
+      muteButton.classList.toggle('active', state.mute[key]);
+      muteButton.setAttribute('aria-pressed', String(state.mute[key]));
+    }
+    if (soloButton) {
+      soloButton.classList.toggle('active', state.solo[key]);
+      soloButton.setAttribute('aria-pressed', String(state.solo[key]));
+    }
+  }
+  ui.vocalValue.textContent = `${Math.round(state.volume.vocals * 100)} %`;
+  ui.choirValue.textContent = `${Math.round(state.volume.choir * 100)} %`;
+  ui.musicValue.textContent = `${Math.round(state.volume.music * 100)} %`;
+}
+
+async function importSeparationLibrary() {
+  if (!separationModulePromise) {
+    separationModulePromise = (async () => {
+      // The import map pins the ONNX Runtime peer to the same CDN/version used for its WASM files.
+      const runtime = await import('onnxruntime-web');
+      if (runtime?.env?.wasm) {
+        runtime.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/';
+        // Multi-threaded WASM is available when Spustit.bat serves COOP/COEP headers.
+        const isolated = window.crossOriginIsolated && typeof SharedArrayBuffer !== 'undefined';
+        // 0 lets ONNX Runtime choose its own efficient worker count (normally
+        // up to half the available cores, capped internally). Multi-threading
+        // requires COOP/COEP headers from Spustit.bat.
+        runtime.env.wasm.numThreads = isolated ? 0 : 1;
+        // Keep WASM initialization in one runtime context. The ORT proxy worker
+        // cannot be combined reliably with the WebGPU execution provider.
+        runtime.env.wasm.proxy = false;
+        runtime.env.wasm.simd = true;
+      }
+      const module = await import('web-audio-separation');
+      if (typeof module.createSeparator !== 'function') {
+        throw new Error('Separační knihovna neobsahuje createSeparator.');
+      }
+      return module;
+    })().catch(error => {
+      separationModulePromise = null;
+      const detail = error?.message || String(error);
+      throw new Error(`Nepodařilo se načíst audio engine: ${detail}. Zkontroluj připojení k internetu nebo spusť aplikaci přes Spustit.bat.`);
+    });
+  }
+  return separationModulePromise;
+}
+function formatMB(bytes) {
+  return (bytes / 1048576).toFixed(1);
+}
+async function setRuntimeModelBlob(blob) {
+  if (!(blob instanceof Blob) || blob.size < MODEL_SIZE * 0.95) {
+    throw new Error('Stažený AI model je neúplný. Zkus stažení znovu.');
+  }
+  if (state.modelBlobUrl) {
+    try { URL.revokeObjectURL(state.modelBlobUrl); } catch { /* already revoked */ }
+  }
+  state.modelBlobUrl = URL.createObjectURL(blob);
+  // Important: the ONNX engine loads this local object URL, not the remote URL.
+  // This avoids a second 67 MB download after the visible download has finished.
+  state.modelUrl = state.modelBlobUrl;
+  state.modelCached = true;
+}
+async function readResponseBlobWithProgress(response, expectedBytes, onProgress, signal = null) {
+  if (!response.body?.getReader) {
+    const blob = await response.blob();
+    onProgress?.(blob.size, expectedBytes || blob.size);
+    return blob;
+  }
+  const reader = response.body.getReader();
+  const chunks = [];
+  let loaded = 0;
+  let lastPaint = 0;
+  try {
+    while (true) {
+      if (signal?.aborted) throw new Error('Stahování bylo přerušeno.');
+      let timer;
+      let part;
+      try {
+        part = await Promise.race([
+          reader.read(),
+          new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error('Server neposílá další data. Zkouším další zdroj.')), 25000);
+          })
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
+      if (part.done) break;
+      chunks.push(part.value);
+      loaded += part.value.byteLength;
+      const now = performance.now();
+      if (now - lastPaint > 70) {
+        onProgress?.(loaded, expectedBytes || loaded);
+        lastPaint = now;
+      }
+    }
+  } catch (error) {
+    try { await reader.cancel(); } catch { /* cancelled after failure */ }
+    throw error;
+  }
+  onProgress?.(loaded, expectedBytes || loaded);
+  return new Blob(chunks, { type: 'application/octet-stream' });
+}
+
+async function downloadModelToCache(job = null) {
+  if (state.modelUrl) return state.modelUrl;
+  if (!('caches' in window)) {
+    throw new Error('Pro stažení AI otevři aplikaci přes Spustit.bat v Chrome nebo Edge.');
+  }
+  const cache = await caches.open(MODEL_CACHE);
+  const isCurrent = () => job === null || job === state.job;
+  const reportDownload = (loaded, total, prefix = 'Stahování AI') => {
+    const safeTotal = Number.isFinite(total) && total > 0 ? total : MODEL_SIZE;
+    const pct = Math.min(99, loaded / safeTotal * 100);
+    const detail = `${prefix} · ${formatMB(loaded)} / ${formatMB(safeTotal)} MB · ${Math.round(pct)} %`;
+    setModelStatus(detail, pct);
+    if (job !== null && isCurrent()) updateTask('model', pct, detail);
+  };
+
+  // Read a cached model as a stream so a slower disk/cache read never looks frozen at 0%.
+  for (const url of MODEL_URLS) {
+    if (!isCurrent()) throw new Error('Zpracování bylo zrušeno.');
+    const cached = await cache.match(url);
+    if (!cached) continue;
+    setModelStatus('Načítám AI model z místní cache…', null);
+    if (job !== null) updateTask('model', null, 'Načítám model z místní cache…');
+    const sizeHeader = Number(cached.headers.get('content-length'));
+    const expected = Number.isFinite(sizeHeader) && sizeHeader > 0 ? sizeHeader : MODEL_SIZE;
+    const blob = await readResponseBlobWithProgress(cached, expected, (loaded, total) => {
+      reportDownload(loaded, total, 'Načítám z cache');
+    });
+    if (blob.size >= MODEL_SIZE * 0.95) {
+      await setRuntimeModelBlob(blob);
+      setModelStatus('AI model je připravený.', 100, 'ready');
+      if (job !== null && isCurrent()) updateTask('model', 100, `Model načten z cache · ${formatMB(blob.size)} MB`, 'done');
+      return state.modelUrl;
+    }
+    await cache.delete(url);
+  }
+
+  let lastError = null;
+  for (let index = 0; index < MODEL_URLS.length; index++) {
+    const url = MODEL_URLS[index];
+    if (!isCurrent()) throw new Error('Zpracování bylo zrušeno.');
+    let reader = null;
+    const controller = new AbortController();
+    let headerTimer = null;
+    try {
+      setModelStatus(index === 0 ? 'Připojuji se k AI serveru…' : `Zkouším záložní zdroj ${index + 1}/${MODEL_URLS.length}…`, null);
+      if (job !== null) updateTask('model', null, 'Navazuji spojení se serverem…');
+      // Give each mirror a bounded time to return headers. Once data begins,
+      // the per-chunk timeout below protects against a stalled transfer.
+      headerTimer = setTimeout(() => controller.abort(), 18000);
+      const response = await fetch(url, {
+        mode: 'cors', credentials: 'omit', redirect: 'follow', cache: 'no-store',
+        signal: controller.signal
+      });
+      clearTimeout(headerTimer);
+      if (!response.ok) throw new Error(`Server odpověděl HTTP ${response.status}.`);
+      if (!response.body?.getReader) throw new Error('Server nepodporuje průběžné stahování souboru.');
+      reader = response.body.getReader();
+      // Re-wrap the reader as a stream so the same progress reader handles
+      // the first byte and all following chunks consistently.
+      const stream = new ReadableStream({
+        pull: async streamController => {
+          try {
+            const part = await reader.read();
+            if (part.done) streamController.close();
+            else streamController.enqueue(part.value);
+          } catch (error) { streamController.error(error); }
+        },
+        cancel: reason => reader.cancel(reason)
+      });
+      const declared = Number(response.headers.get('content-length'));
+      const total = Number.isFinite(declared) && declared > 0 ? declared : MODEL_SIZE;
+      setModelStatus(`Připojeno · stahuji AI model…`, null);
+      if (job !== null) updateTask('model', null, 'Server odpovídá, čekám na první data…');
+      const blob = await readResponseBlobWithProgress(new Response(stream), total, (loaded, knownTotal) => {
+        reportDownload(loaded, knownTotal);
+      }, controller.signal);
+      reader = null;
+      if (blob.size < MODEL_SIZE * 0.95) throw new Error(`Stažený soubor je neúplný (${formatMB(blob.size)} MB).`);
+      if (!isCurrent()) throw new Error('Zpracování bylo zrušeno.');
+
+      let saved = false;
+      try {
+        await cache.put(url, new Response(blob, {
+          status: 200,
+          headers: { 'Content-Type': 'application/octet-stream', 'Content-Length': String(blob.size) }
+        }));
+        saved = true;
+      } catch (cacheError) {
+        console.warn('AI model nelze uložit do Cache Storage:', cacheError);
+      }
+      await setRuntimeModelBlob(blob);
+      const readyMessage = saved
+        ? `AI stažena · ${formatMB(blob.size)} MB`
+        : `AI stažena · ${formatMB(blob.size)} MB · jen pro toto spuštění`;
+      setModelStatus(readyMessage, 100, 'ready');
+      if (job !== null && isCurrent()) updateTask('model', 100, readyMessage, 'done');
+      return state.modelUrl;
+    } catch (error) {
+      clearTimeout(headerTimer);
+      if (reader) { try { await reader.cancel(); } catch { /* cleanup */ } }
+      lastError = error;
+      if (!isCurrent()) throw new Error('Zpracování bylo zrušeno.');
+      console.warn(`Stažení modelu ze zdroje ${index + 1} selhalo:`, error);
+    }
+  }
+  const detail = lastError?.message || 'Neznámá chyba při stahování.';
+  if (/failed to fetch|load failed|networkerror|aborted/i.test(detail)) {
+    throw new Error('AI model se nepodařilo stáhnout. Zkontroluj internet nebo zkus stažení znovu.');
+  }
+  throw new Error(`Stažení AI selhalo: ${detail}`);
+}
+function getSeparatorConfig(job, isPreload = false, executionProviders = ['wasm'], options = {}) {
+  const modelUrl = options.modelUrl || state.modelUrl || MODEL_URLS[0];
+  const modelTaskId = options.modelTaskId || 'model';
+  const separationTaskId = options.separationTaskId || 'separation';
+  const isChoirPass = separationTaskId === 'choirSeparation';
+  return {
+    common: {
+      logLevel: 'error',
+      modelUrl,
+      onProgress: progress => {
+        if (progress?.stage === 'loading-model') {
+          const pct = Number.isFinite(progress.fraction) ? progress.fraction * 100 : null;
+          if (isPreload) {
+            if (Number.isFinite(progress.fraction) && progress.fraction >= 1) setModelStatus('AI model je připravený.', 100, 'ready');
+            else setModelStatus('Inicializuji AI model…', null);
+          } else if (job === state.job) {
+            if (Number.isFinite(progress.fraction) && progress.fraction >= 1) updateTask(modelTaskId, 100, isChoirPass ? 'Model pro sbory je připravený.' : 'AI model je připravený.', 'done');
+            else updateTask(modelTaskId, null, isChoirPass ? 'Inicializuji model pro sbory…' : 'Inicializuji AI model…');
+          }
+        } else if (job !== null && job === state.job && progress?.stage === 'demixing') {
+          let fraction = null;
+          if (Number.isFinite(progress.fraction)) fraction = progress.fraction;
+          else if (Number.isFinite(progress.progress)) fraction = progress.progress > 1 ? progress.progress / 100 : progress.progress;
+          else if (Number.isFinite(progress.percent)) fraction = progress.percent / 100;
+          else if (Number.isFinite(progress.completed) && Number.isFinite(progress.total) && progress.total > 0) fraction = progress.completed / progress.total;
+          else if (Number.isFinite(progress.chunkIndex) && Number.isFinite(progress.totalChunks) && progress.totalChunks > 0) fraction = (progress.chunkIndex + 1) / progress.totalChunks;
+          else if (Number.isFinite(progress.currentChunk) && Number.isFinite(progress.numChunks) && progress.numChunks > 0) fraction = progress.currentChunk / progress.numChunks;
+          // A reported initial 0 is only a start event, not measurable progress.
+          // Keep the bar animated until the runtime reports a value above zero.
+          const pct = Number.isFinite(fraction) && fraction > 0.005
+            ? Math.max(1, Math.min(100, fraction * 100))
+            : null;
+          updateTask(separationTaskId, pct, isChoirPass ? 'AI odděluje hlavní hlas a sbory…' : 'AI odděluje zpěv a hudbu…');
+        } else if (job !== null && job === state.job && progress?.stage === 'writing-output') {
+          const pct = Number.isFinite(progress.fraction) ? 90 + Math.max(0, Math.min(1, progress.fraction)) * 10 : null;
+          updateTask(separationTaskId, pct, 'Dokončuji zvukové stopy…');
+        }
+      }
+    },
+    mdx: {
+      executionProviders,
+      batchSize: 1,
+      overlap: 0.03125,
+      segmentSize: 256,
+      hopLength: 1024
+    }
+  };
+}
+async function createLoadedSeparator(job, isPreload = false, modelName = MODEL_KEY, modelUrl = null, modelTaskId = 'model', separationTaskId = 'separation') {
+  const module = await importSeparationLibrary();
+  if (job !== null && job !== state.job) throw new Error('Zpracování bylo zrušeno.');
+  if (typeof module.createSeparator !== 'function') throw new Error('AI knihovna neposkytla separační funkci.');
+  if (modelName === MODEL_KEY && !state.modelUrl) await downloadModelToCache(job);
+  if (isPreload) setModelStatus('Připravuji výpočetní engine…', null);
+  else if (job !== null && job === state.job) updateTask(modelTaskId, null, 'Připravuji výpočetní engine…');
+  const providers = (await getExecutionProviderSets())[0];
+  const resolvedModelUrl = modelUrl || (modelName === MODEL_KEY ? state.modelUrl : undefined);
+  const separator = module.createSeparator(modelName, getSeparatorConfig(job, isPreload, providers, {
+    modelUrl: resolvedModelUrl,
+    modelTaskId,
+    separationTaskId
+  }));
+  try {
+    if (isPreload) setModelStatus('Inicializuji AI model…', null);
+    await separator.loadModel();
+    if (job !== null && job !== state.job) {
+      try { await separator.dispose?.(); } catch { /* cleanup only */ }
+      throw new Error('Zpracování bylo zrušeno.');
+    }
+    return separator;
+  } catch (error) {
+    try { await separator.dispose?.(); } catch { /* cleanup only */ }
+    const detail = error?.message || String(error);
+    if (/multiple calls to ['"]?initWasm|no available backend/i.test(detail)) {
+      throw new Error('ONNX Runtime se nepodařilo bezpečně inicializovat. Zavři ostatní karty JACK Vocal Remover a spusť aplikaci znovu přes Spustit.bat.');
+    }
+    throw new Error(`AI model se stáhl, ale nepodařilo se ho spustit. ${detail}`);
+  }
+}
+async function downloadChoirModelToCache(job, taskId = 'choirModel', preloading = false) {
+  const cache = await caches.open(MODEL_CACHE);
+  const isCurrent = () => job === null || job === state.job;
+  const report = (percent, detail, status = 'running') => {
+    if (!isCurrent()) return;
+    if (preloading) setModelStatus(detail, percent, status === 'done' ? 'ready' : '');
+    else if (taskId) updateTask(taskId, percent, detail, status);
+  };
+  const cached = await cache.match(CHOIR_MODEL_URL);
+  if (cached) {
+    const blob = await cached.blob();
+    if (blob.size > 10 * 1024 * 1024) {
+      report(100, `Model pro sbory z cache · ${formatMB(blob.size)} MB`, 'done');
+      return;
+    }
+    await cache.delete(CHOIR_MODEL_URL);
+  }
+  const response = await fetch(CHOIR_MODEL_URL, { mode: 'cors', credentials: 'omit', redirect: 'follow' });
+  if (!response.ok) throw new Error(`Model pro sbory nelze stáhnout (HTTP ${response.status}).`);
+  if (!response.body?.getReader) throw new Error('Server nepodporuje průběžné stahování modelu pro sbory.');
+  const headerSize = Number(response.headers.get('content-length'));
+  const total = Number.isFinite(headerSize) && headerSize > 0 ? headerSize : CHOIR_MODEL_ESTIMATE;
+  const reader = response.body.getReader();
+  const chunks = [];
+  let loaded = 0;
+  let lastPaint = 0;
+  while (true) {
+    const part = await reader.read();
+    if (part.done) break;
+    if (!isCurrent()) { try { await reader.cancel(); } catch {} throw new Error('Zpracování bylo zrušeno.'); }
+    chunks.push(part.value);
+    loaded += part.value.byteLength;
+    const now = performance.now();
+    if (now - lastPaint > 80) {
+      const pct = Math.min(99, loaded / total * 100);
+      report(pct, `Stahování modelu pro sbory · ${formatMB(loaded)} / ${formatMB(total)} MB`);
+      lastPaint = now;
+    }
+  }
+  if (loaded < 10 * 1024 * 1024) throw new Error(`Model pro sbory je neúplný (${formatMB(loaded)} MB).`);
+  const blob = new Blob(chunks, { type: 'application/octet-stream' });
+  await cache.put(CHOIR_MODEL_URL, new Response(blob, { status: 200, headers: { 'Content-Type': 'application/octet-stream' } }));
+  report(100, `Model pro sbory stažen · ${formatMB(loaded)} MB`, 'done');
+}
+
+async function preloadModel() {
+  if (state.busy || state.preloading) return;
+  if (state.separator) {
+    if (ui.separateChoir?.checked) {
+      state.preloading = true;
+      ui.preload.disabled = true;
+      try {
+        setModelStatus('Kontroluji model pro sbory…', null);
+        await downloadChoirModelToCache(null, null, true);
+        setModelStatus('AI modely jsou připravené.', 100, 'ready');
+      } catch (error) {
+        setModelStatus(error?.message || 'Model pro sbory se nepodařilo stáhnout.', null, 'error');
+      } finally {
+        state.preloading = false;
+        ui.preload.disabled = false;
+      }
+    } else {
+      setModelStatus('AI model je připravený.', 100, 'ready');
+    }
+    return;
+  }
+  state.preloading = true;
+  ui.preload.disabled = true;
+  let separator = null;
+  try {
+    setModelStatus('Připravuji stažení…', null);
+    await downloadModelToCache(null);
+    separator = await createLoadedSeparator(null, true);
+    state.separator = separator;
+    separator = null;
+    if (ui.separateChoir?.checked) {
+      setModelStatus('Stahuji model pro sbory…', null);
+      await downloadChoirModelToCache(null, null, true);
+      setModelStatus('AI modely jsou připravené.', 100, 'ready');
+    } else {
+      setModelStatus('AI model je připravený.', 100, 'ready');
+    }
+  } catch (error) {
+    setModelStatus(error?.message || 'AI model se nepodařilo načíst.', null, 'error');
+  } finally {
+    if (separator) { try { await separator.dispose?.(); } catch { /* cleanup only */ } }
+    state.preloading = false;
+    ui.preload.disabled = false;
+  }
+}
+
+function drawWaveform() {
+  const canvas = ui.wave;
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width || !state.vocals) return;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(rect.width * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+  const context = canvas.getContext('2d');
+  context.setTransform(dpr, 0, 0, dpr, 0, 0);
+  context.clearRect(0, 0, rect.width, rect.height);
+  const data = state.vocals.getChannelData(0);
+  const step = Math.max(1, Math.floor(data.length / rect.width));
+  const middle = rect.height / 2;
+  context.strokeStyle = getComputedStyle(document.body).getPropertyValue('--line');
+  context.beginPath(); context.moveTo(0, middle); context.lineTo(rect.width, middle); context.stroke();
+  const gradient = context.createLinearGradient(0, 0, rect.width, 0);
+  gradient.addColorStop(0, '#9a86f2'); gradient.addColorStop(1, '#70cbd3');
+  context.fillStyle = gradient;
+  for (let x = 0; x < rect.width; x++) {
+    const start = x * step, end = Math.min(data.length, start + step);
+    let min = 1, max = -1;
+    for (let i = start; i < end; i++) { min = Math.min(min, data[i]); max = Math.max(max, data[i]); }
+    const height = Math.max(2, (max - min) * rect.height * 0.8);
+    context.fillRect(x, middle - height / 2, 1, height);
+  }
+}
+function duration() { return state.vocals?.duration || state.music?.duration || 0; }
+function currentPosition() {
+  if (!state.playing || !state.ctx) return state.offset;
+  return Math.min(duration(), Math.max(0, state.offset + state.ctx.currentTime - state.startedAt));
+}
+function renderTransport() {
+  if (!state.vocals) return;
+  const position = currentPosition();
+  const total = duration();
+  ui.currentTime.textContent = formatTime(position);
+  ui.seek.value = String(Math.round(position / (total || 1) * 1000));
+  ui.playhead.style.left = `${Math.min(100, position / (total || 1) * 100)}%`;
+  if (state.playing) state.raf = requestAnimationFrame(renderTransport);
+}
+async function togglePlayback() {
+  if (!state.vocals || !state.music) return;
+  const ctx = audioContext();
+  await ctx.resume();
+  if (state.playing) {
+    state.offset = currentPosition();
+    clearPlayback();
+    renderTransport();
+    return;
+  }
+  if (state.offset >= duration()) state.offset = 0;
+  clearPlayback();
+  const when = ctx.currentTime + 0.05;
+  const offset = state.offset;
+  const jobAtStart = state.job;
+  for (const key of ['vocals', 'choir', 'music']) {
+    const buffer = state[key];
+    if (!buffer || !state.gains[key]) continue;
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(state.gains[key]);
+    source.start(when, offset);
+    state.sources.push(source);
+  }
+  state.startedAt = when;
+  state.playing = true;
+  ui.play.textContent = 'Ⅱ';
+  ui.play.setAttribute('aria-label', 'Pozastavit');
+  if (state.sources[0]) state.sources[0].onended = () => {
+    if (jobAtStart === state.job && state.playing && currentPosition() >= duration() - 0.05) stopPlayback();
+  };
+  renderTransport();
+}
+
+function stopPlayback() {
+  clearPlayback();
+  state.offset = 0;
+  ui.currentTime.textContent = '00:00';
+  ui.seek.value = '0';
+  ui.playhead.style.left = '0%';
+}
+function seekTo(value) {
+  if (!state.vocals) return;
+  const wasPlaying = state.playing;
+  state.offset = duration() * Number(value) / 1000;
+  if (wasPlaying) {
+    clearPlayback();
+    togglePlayback().catch(error => showError(error.message));
+  } else renderTransport();
+}
+
+function makeWav(buffer) {
+  const channels = buffer.numberOfChannels;
+  const sampleRate = buffer.sampleRate;
+  const frames = buffer.length;
+  const blockAlign = channels * 2;
+  const dataSize = frames * blockAlign;
+  const arrayBuffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(arrayBuffer);
+  const writeString = (offset, value) => { for (let i = 0; i < value.length; i++) view.setUint8(offset + i, value.charCodeAt(i)); };
+  writeString(0, 'RIFF'); view.setUint32(4, 36 + dataSize, true); writeString(8, 'WAVE');
+  writeString(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true); view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true); view.setUint16(34, 16, true); writeString(36, 'data'); view.setUint32(40, dataSize, true);
+  let offset = 44;
+  for (let i = 0; i < frames; i++) {
+    for (let channel = 0; channel < channels; channel++) {
+      const sample = Math.max(-1, Math.min(1, buffer.getChannelData(channel)[i]));
+      view.setInt16(offset, sample < 0 ? sample * 32768 : sample * 32767, true);
+      offset += 2;
+    }
+  }
+  return new Blob([arrayBuffer], { type: 'audio/wav' });
+}
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url; anchor.download = name; document.body.appendChild(anchor); anchor.click(); anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+async function loadMp3Encoder() {
+  if (window.lamejs) return window.lamejs;
+  if (!mp3EncoderPromise) {
+    mp3EncoderPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
+      script.onload = () => window.lamejs ? resolve(window.lamejs) : reject(new Error('MP3 enkodér se nenačetl.'));
+      script.onerror = () => reject(new Error('MP3 enkodér nelze stáhnout. Zkontroluj internet.'));
+      document.head.appendChild(script);
+    }).catch(error => { mp3EncoderPromise = null; throw error; });
+  }
+  return mp3EncoderPromise;
+}
+async function resampleForMp3(buffer) {
+  const supportedRates = [44100, 48000, 32000, 24000, 22050, 16000, 12000, 11025, 8000];
+  if (supportedRates.includes(buffer.sampleRate)) return buffer;
+  const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!Offline) throw new Error('Nelze převést vzorkovací frekvenci pro MP3. Použij WAV.');
+  const outputRate = 44100;
+  const length = Math.ceil(buffer.duration * outputRate);
+  const offline = new Offline(buffer.numberOfChannels, length, outputRate);
+  const source = offline.createBufferSource(); source.buffer = buffer; source.connect(offline.destination); source.start();
+  return offline.startRendering();
+}
+function toInt16(samples) {
+  const output = new Int16Array(samples.length);
+  for (let i = 0; i < samples.length; i++) {
+    const sample = Math.max(-1, Math.min(1, samples[i]));
+    output[i] = sample < 0 ? sample * 32768 : sample * 32767;
+  }
+  return output;
+}
+async function makeMp3(buffer) {
+  const lib = await loadMp3Encoder();
+  const readyBuffer = await resampleForMp3(buffer);
+  const channels = readyBuffer.numberOfChannels > 1 ? 2 : 1;
+  const encoder = new lib.Mp3Encoder(channels, readyBuffer.sampleRate, 192);
+  const left = readyBuffer.getChannelData(0);
+  const right = channels === 2 ? readyBuffer.getChannelData(1) : null;
+  const blockSize = 1152;
+  const parts = [];
+  for (let start = 0; start < readyBuffer.length; start += blockSize) {
+    const end = Math.min(start + blockSize, readyBuffer.length);
+    const leftPcm = toInt16(left.subarray(start, end));
+    const encoded = channels === 2
+      ? encoder.encodeBuffer(leftPcm, toInt16(right.subarray(start, end)))
+      : encoder.encodeBuffer(leftPcm);
+    if (encoded?.length) parts.push(new Uint8Array(encoded));
+    const percent = Math.round(end / readyBuffer.length * 100);
+    ui.exportBar.style.width = `${percent}%`;
+    ui.exportState.textContent = `Převod do MP3 · ${percent} %`;
+    if (start % (blockSize * 48) === 0) await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  const tail = encoder.flush();
+  if (tail?.length) parts.push(new Uint8Array(tail));
+  return new Blob(parts, { type: 'audio/mpeg' });
+}
+async function exportBuffer(buffer, suffix) {
+  if (!buffer) throw new Error('Zvuková stopa není připravená.');
+  ui.exportBar.style.width = '0%';
+  ui.exportState.classList.remove('error');
+  const useWav = ui.format.value === 'wav';
+  const blob = useWav ? makeWav(buffer) : await makeMp3(buffer);
+  if (useWav) ui.exportBar.style.width = '100%';
+  downloadBlob(blob, `${state.filename}_${suffix}.${useWav ? 'wav' : 'mp3'}`);
+  ui.exportState.textContent = `✓ Soubor připraven · ${(blob.size / 1048576).toFixed(1)} MB`;
+}
+function createMixBuffer() {
+  if (!state.vocals || !state.music) throw new Error('Nejdřív odděl skladbu.');
+  const buffers = ['vocals', 'choir', 'music'].map(key => state[key]).filter(Boolean);
+  const channels = Math.max(...buffers.map(buffer => buffer.numberOfChannels));
+  const frames = Math.min(...buffers.map(buffer => buffer.length));
+  const mix = audioContext().createBuffer(channels, frames, state.vocals.sampleRate);
+  const keys = ['vocals', 'choir', 'music'];
+  const anySolo = keys.some(key => state.solo[key] && !state.mute[key] && state[key]);
+  for (let channel = 0; channel < channels; channel++) {
+    const out = mix.getChannelData(channel);
+    const tracks = keys.map(key => {
+      const buffer = state[key];
+      const audible = buffer && !state.mute[key] && (!anySolo || state.solo[key]);
+      return audible ? { data: buffer.getChannelData(Math.min(channel, buffer.numberOfChannels - 1)), gain: state.volume[key] } : null;
+    }).filter(Boolean);
+    for (let i = 0; i < frames; i++) {
+      let sample = 0;
+      for (const track of tracks) sample += track.data[i] * track.gain;
+      out[i] = Math.max(-1, Math.min(1, sample));
+    }
+  }
+  return mix;
+}
+
+async function safeExport(action) {
+  if (state.exporting) return;
+  state.exporting = true;
+  ui.exportState.textContent = 'Připravuji export…';
+  ui.exportBar.style.width = '0%';
+  try { await action(); }
+  catch (error) { ui.exportState.classList.add('error'); ui.exportState.textContent = error?.message || 'Export se nepodařil.'; }
+  finally { state.exporting = false; }
+}
+function updateModelDescription() {
+  setModelStatus('AI model není stažený.', 0);
+}
+function onFileSelected(file) {
+  if (state.busy || !file) return;
+  if (file.size > 250 * 1024 * 1024) { showError('Soubor je větší než 250 MB.'); return; }
+  if (!file.type.startsWith('audio/') && !/\.(mp3|wav|m4a|flac|ogg|aac|opus|webm)$/i.test(file.name)) {
+    showError('Vyber platný audio soubor.'); return;
+  }
+  state.job++;
+  clearAudio();
+  clearError();
+  state.pendingFile = file;
+  state.filename = safeFilename(file.name);
+  ui.selectedName.textContent = `${file.name} · ${(file.size / 1048576).toFixed(1)} MB`;
+  ui.selected.classList.remove('hidden');
+  ui.choirOption.classList.remove('hidden');
+  ui.drop.classList.add('hidden');
+  ui.processing.classList.add('hidden');
+  ui.mixer.classList.add('hidden');
+}
+function startNewSong() {
+  if (state.busy) return;
+  state.job++;
+  clearAudio();
+  clearError();
+  state.pendingFile = null;
+  ui.file.value = '';
+  ui.selected.classList.add('hidden');
+  ui.choirOption.classList.add('hidden');
+  ui.drop.classList.remove('hidden');
+  ui.processing.classList.add('hidden');
+  ui.mixer.classList.add('hidden');
+  ui.vocalVolume.value = '100';
+  ui.choirVolume.value = '100';
+  ui.musicVolume.value = '100';
+  state.volume = { vocals: 1, choir: 1, music: 1 };
+  state.mute = { vocals: false, choir: false, music: false };
+  state.solo = { vocals: false, choir: false, music: false };
+  updateTrackControls();
+}
+async function runSeparation() {
+  if (!state.pendingFile || state.busy || state.preloading) return;
+  const job = ++state.job;
+  const file = state.pendingFile;
+  const wantsChoir = Boolean(ui.separateChoir?.checked);
+  state.busy = true;
+  ui.process.disabled = ui.changeFile.disabled = ui.choose.disabled = ui.preload.disabled = true;
+  ui.newSong.disabled = true;
+  ui.processing.classList.remove('hidden');
+  ui.tasks.innerHTML = '';
+  ui.error.classList.add('hidden');
+  ui.mixer.classList.add('hidden');
+  createTask('audio', 'Načítání skladby');
+  createTask('model', 'Načítání AI modelu');
+  createTask('separation', 'Oddělení zpěvu a hudby');
+  if (wantsChoir) {
+    createTask('choirModel', 'Načítání modelu pro sbory');
+    createTask('choirSeparation', 'Oddělení hlavního hlasu a sborů');
+  }
+  createTask('stems', 'Příprava samostatných stop');
+  let inputUrl = null;
+  let outputUrls = [];
+  let choirSeparator = null;
+  let choirWarning = '';
+  try {
+    const ctx = audioContext();
+    await ctx.resume();
+    updateTask('audio', 0, 'Připravuji zvukový soubor…');
+    inputUrl = URL.createObjectURL(file);
+    updateTask('audio', 100, `${formatMB(file.size)} MB · připraveno`, 'done');
+
+    updateTask('model', null, state.separator ? 'Používám připravený AI model…' : 'Připravuji AI model…');
+    ui.processingOverall.textContent = 'Načítání AI';
+    setModelStatus(state.modelUrl ? 'Připravuji AI engine…' : 'Připravuji stažení AI…', null);
+    if (!state.modelUrl) await downloadModelToCache(job);
+    if (!state.separator) state.separator = await createLoadedSeparator(job, false);
+    const primarySeparator = state.separator;
+    updateTask('model', 100, 'AI model je připravený.', 'done');
+    if (job !== state.job) return;
+
+    updateTask('separation', null, 'AI připravuje zvukové bloky…');
+    ui.processingOverall.textContent = 'AI odděluje zpěv a hudbu';
+    const firstPassUrls = await primarySeparator.separate(inputUrl);
+    outputUrls.push(...firstPassUrls);
+    if (job !== state.job) return;
+    if (!Array.isArray(firstPassUrls) || firstPassUrls.length < 2) throw new Error('Model nevrátil dvě samostatné zvukové stopy.');
+
+    // The library writes SECONDARY first and PRIMARY second.
+    // Voc_FT has Vocals as primary, so [0] is instrumental and [1] is vocals.
+    const firstInstrumentalUrl = firstPassUrls[0];
+    const allVocalsUrl = firstPassUrls[1];
+    let leadUrl = allVocalsUrl;
+    let backingUrl = null;
+
+    if (wantsChoir) {
+      try {
+        updateTask('choirModel', null, 'Kontroluji uložený model…');
+        await downloadChoirModelToCache(job, 'choirModel');
+        if (job !== state.job) return;
+        choirSeparator = await createLoadedSeparator(job, false, CHOIR_MODEL_KEY, CHOIR_MODEL_URL, 'choirModel', 'choirSeparation');
+        updateTask('choirModel', 100, 'Model pro sbory je připravený.', 'done');
+        updateTask('choirSeparation', null, 'Připravuji oddělení hlavního hlasu a sborů…');
+        const secondPassUrls = await choirSeparator.separate(allVocalsUrl);
+        outputUrls.push(...secondPassUrls);
+        if (job !== state.job) return;
+        if (!Array.isArray(secondPassUrls) || secondPassUrls.length < 2) throw new Error('Model pro sbory nevrátil dvě vokální stopy.');
+        // Karaoke 2 writes secondary (Vocals = lead) first, primary (Instrumental = remaining harmonies) second.
+        leadUrl = secondPassUrls[0];
+        backingUrl = secondPassUrls[1];
+        updateTask('choirSeparation', 100, 'Hlavní hlas a sbory jsou oddělené.', 'done');
+      } catch (error) {
+        if (job !== state.job) return;
+        choirWarning = `Sbory se nepodařilo oddělit zvlášť: ${error?.message || error}. Zpěv zůstává v jedné stopě.`;
+        updateTask('choirSeparation', null, choirWarning, 'error');
+        if (!$('task-choirModel')?.classList.contains('error')) updateTask('choirModel', null, 'Druhý model nebyl použit.', 'error');
+      } finally {
+        if (choirSeparator) {
+          try { await choirSeparator.dispose?.(); } catch { /* cleanup only */ }
+          choirSeparator = null;
+        }
+      }
+    }
+
+    updateTask('separation', 100, 'Oddělení zpěvu a hudby dokončeno.', 'done');
+    ui.processingOverall.textContent = 'Dokončeno';
+    updateTask('stems', null, 'Načítám samostatné stopy…');
+    const decodeUrl = async url => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Nepodařilo se načíst oddělenou zvukovou stopu.');
+      return ctx.decodeAudioData(await response.arrayBuffer());
+    };
+    const decodeJobs = [decodeUrl(leadUrl), decodeUrl(firstInstrumentalUrl)];
+    if (backingUrl) decodeJobs.push(decodeUrl(backingUrl));
+    const decoded = await Promise.all(decodeJobs);
+    if (job !== state.job) return;
+    const [vocalBuffer, musicBuffer, choirBuffer = null] = decoded;
+
+    clearAudio();
+    state.vocals = vocalBuffer;
+    state.choir = choirBuffer;
+    state.music = musicBuffer;
+    state.filename = safeFilename(file.name);
+    state.volume = { vocals: 1, choir: 1, music: 1 };
+    state.mute = { vocals: false, choir: false, music: false };
+    state.solo = { vocals: false, choir: false, music: false };
+    ui.vocalVolume.value = '100';
+    ui.choirVolume.value = '100';
+    ui.musicVolume.value = '100';
+    ui.choirCard.classList.toggle('hidden', !choirBuffer);
+    createIndependentGains();
+    ui.fileInfo.textContent = `${file.name} · ${formatTime(vocalBuffer.duration)} · ${choirBuffer ? 'Zpěv + sbory + hudba' : 'Zpěv + hudba'}`;
+    ui.currentTime.textContent = '00:00';
+    ui.duration.textContent = formatTime(vocalBuffer.duration);
+    ui.seek.value = '0';
+    ui.mixer.classList.remove('hidden');
+    drawWaveform();
+    updateTask('stems', 100, choirBuffer ? 'Zpěv, sbory a hudba jsou připravené.' : 'Zpěv a hudba jsou připravené.', 'done');
+    if (choirWarning) showError(choirWarning);
+    setTimeout(() => ui.mixer.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+  } catch (error) {
+    if (job === state.job) {
+      const message = error?.message || 'Zpracování se nepodařilo.';
+      updateTask('separation', null, message, 'error');
+      showError(message);
+    }
+  } finally {
+    if (choirSeparator) { try { await choirSeparator.dispose?.(); } catch { /* cleanup only */ } }
+    if (inputUrl) URL.revokeObjectURL(inputUrl);
+    for (const url of outputUrls) { try { URL.revokeObjectURL(url); } catch { /* cleanup only */ } }
+    if (job === state.job) {
+      state.busy = false;
+      ui.process.disabled = ui.changeFile.disabled = ui.choose.disabled = ui.preload.disabled = false;
+      ui.newSong.disabled = false;
+    }
+  }
+}
+
+function bindEvents() {
+  ui.preload.addEventListener('click', preloadModel);
+  ui.format.addEventListener('change', () => {
+    ui.exportState.textContent = `Export: ${ui.format.value.toUpperCase()}${ui.format.value === 'mp3' ? ' · 192 kb/s' : ''}`;
+  });
+  ui.choose.addEventListener('click', event => { event.stopPropagation(); ui.file.click(); });
+  ui.drop.addEventListener('click', event => { if (!event.target.closest('button')) ui.file.click(); });
+  ui.drop.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); ui.file.click(); } });
+  ui.file.addEventListener('change', () => { const file = ui.file.files?.[0]; if (file) onFileSelected(file); ui.file.value = ''; });
+  for (const eventName of ['dragenter', 'dragover']) ui.drop.addEventListener(eventName, event => { event.preventDefault(); ui.drop.classList.add('drag'); });
+  for (const eventName of ['dragleave', 'drop']) ui.drop.addEventListener(eventName, event => { event.preventDefault(); ui.drop.classList.remove('drag'); });
+  ui.drop.addEventListener('drop', event => { event.preventDefault(); const file = event.dataTransfer?.files?.[0]; if (file) onFileSelected(file); });
+  ui.process.addEventListener('click', runSeparation);
+  ui.changeFile.addEventListener('click', startNewSong);
+  ui.newSong.addEventListener('click', startNewSong);
+  ui.play.addEventListener('click', () => togglePlayback().catch(error => showError(error.message)));
+  ui.stop.addEventListener('click', stopPlayback);
+  ui.seek.addEventListener('input', () => seekTo(ui.seek.value));
+  ui.vocalVolume.addEventListener('input', () => { state.volume.vocals = Number(ui.vocalVolume.value) / 100; updateTrackControls(); });
+  ui.choirVolume.addEventListener('input', () => { state.volume.choir = Number(ui.choirVolume.value) / 100; updateTrackControls(); });
+  ui.musicVolume.addEventListener('input', () => { state.volume.music = Number(ui.musicVolume.value) / 100; updateTrackControls(); });
+  ui.vocalMute.addEventListener('click', () => { state.mute.vocals = !state.mute.vocals; updateTrackControls(); });
+  ui.choirMute.addEventListener('click', () => { state.mute.choir = !state.mute.choir; updateTrackControls(); });
+  ui.musicMute.addEventListener('click', () => { state.mute.music = !state.mute.music; updateTrackControls(); });
+  ui.vocalSolo.addEventListener('click', () => { state.solo.vocals = !state.solo.vocals; if (state.solo.vocals) { state.solo.choir = false; state.solo.music = false; } updateTrackControls(); });
+  ui.choirSolo.addEventListener('click', () => { state.solo.choir = !state.solo.choir; if (state.solo.choir) { state.solo.vocals = false; state.solo.music = false; } updateTrackControls(); });
+  ui.musicSolo.addEventListener('click', () => { state.solo.music = !state.solo.music; if (state.solo.music) { state.solo.vocals = false; state.solo.choir = false; } updateTrackControls(); });
+  ui.downloadVocals.addEventListener('click', () => safeExport(() => exportBuffer(state.vocals, 'zpev')));
+  ui.downloadChoir.addEventListener('click', () => safeExport(() => exportBuffer(state.choir, 'sbory')));
+  ui.downloadMusic.addEventListener('click', () => safeExport(() => exportBuffer(state.music, 'hudba')));
+  ui.downloadMix.addEventListener('click', () => safeExport(() => exportBuffer(createMixBuffer(), 'mix')));
+  window.addEventListener('resize', () => { if (!ui.mixer.classList.contains('hidden')) drawWaveform(); });
+  window.addEventListener('beforeunload', () => {
+    state.job++;
+    clearPlayback();
+    clearAudio();
+    try { state.separator?.dispose?.(); } catch { /* cleanup only */ }
+    if (state.modelBlobUrl) { try { URL.revokeObjectURL(state.modelBlobUrl); } catch { /* cleanup only */ } }
+    if (state.ctx && state.ctx.state !== 'closed') state.ctx.close();
+  });
+}
+function initialize() {
+  bindEvents();
+  updateModelDescription();
+  if ('caches' in window) {
+    caches.open(MODEL_CACHE).then(async cache => {
+      for (const url of MODEL_URLS) {
+        const cached = await cache.match(url);
+        if (cached) {
+          const size = Number(cached.headers.get('content-length'));
+          // A cache hit is checked when the user preloads; do not read 67 MB at startup.
+          state.modelCached = true;
+          setModelStatus('AI model je stažený.', 100, 'ready');
+          break;
+        }
+      }
+    }).catch(() => {});
+  }
+  const lockup = document.querySelector('.brand-lockup');
+  const logoTitle = document.querySelector('.brand-title');
+  if (lockup && logoTitle) {
+    const measureLogo = () => {
+      const titleWidth = logoTitle.getBoundingClientRect().width || logoTitle.scrollWidth || 0;
+      lockup.style.setProperty('--title-shift', `${Math.ceil(titleWidth)}px`);
+    };
+    measureLogo();
+    window.addEventListener('resize', measureLogo, { passive: true });
+  }
+  setTimeout(() => document.body.classList.add('logo-reveal'), 650);
+  setTimeout(() => document.body.classList.add('entered'), 2100);
+}
+initialize();
+
+</script>
+<!-- JACK_AD_SCRIPT_START: sem vlož celý ověřený reklamní kód od poskytovatele; zatím je záměrně prázdný. -->
+<!-- JACK_AD_SCRIPT_END -->
+</body>
+</html>
